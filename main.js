@@ -4,15 +4,15 @@ const API_URL = "https://www.speedrun.com/api/v1/";
 
 function srcApiGetFromUrlAwait(urlStr)
 {
-	let timeStart = Date.now();
+    let timeStart = performance.now();
     return new Promise(function (resolve, reject) {
         let xmlHttp = new XMLHttpRequest();
         xmlHttp.open("GET", urlStr, true);
         xmlHttp.onload = function () {
             if (this.status >= 200 && this.status < 300) {
-				let data = JSON.parse(xmlHttp.response);
-				let timeEnd = Date.now();
-				console.log(`${urlStr}: ${(timeEnd - timeStart)/1000.0}`);
+                let data = JSON.parse(xmlHttp.response);
+                let timeEnd = performance.now();
+                console.log(`${urlStr}: ${(timeEnd - timeStart)/1000.0}`);
                 resolve(data);
             } else {
                 reject({
@@ -33,7 +33,7 @@ function srcApiGetFromUrlAwait(urlStr)
 
 function srcApiGetAwait(endpoint)
 {
-	return srcApiGetFromUrlAwait(API_URL + endpoint);
+    return srcApiGetFromUrlAwait(API_URL + endpoint);
 }
 
 function srcApiGetFromUrlCallback(urlStr, callback)
@@ -76,7 +76,7 @@ function srcGetAllRuns_processRuns(allRuns)
         for 
         let row = mcceQueue.insertRow();
         
-        output += JSON.stringify(run) + "\n";
+        output += JSON.stringify(run) + "\\n";
     }
 
     $("pre").text(output);
@@ -84,12 +84,12 @@ function srcGetAllRuns_processRuns(allRuns)
 
 async function fetchVerificationQueue()
 {
-	let gameData = await srcApiGetAwait(`games?abbreviation=${GAME}&max=1&_bulk=yes`);
-	let gameId = gameData["data"][0]["id"];
+    let gameData = await srcApiGetAwait(`games?abbreviation=${GAME}&max=1&_bulk=yes`);
+    let gameId = gameData["data"][0]["id"];
 
-	let failsafeCount = 0;
-	
-	let runsAndPagination = await srcApiGetAwait(`runs?game=${gameId}&status=new&orderby=date&direction=asc&max=200`);
+    let failsafeCount = 0;
+    
+    let runsAndPagination = await srcApiGetAwait(`runs?game=${gameId}&status=new&orderby=date&direction=asc&max=200`);
     let allRuns = runsAndPagination["data"];
     let pagination = runsAndPagination["pagination"];
     while (pagination["size"] == pagination["max"]) {
@@ -100,24 +100,35 @@ async function fetchVerificationQueue()
 
         let paginationLinks = pagination["links"];
         runsAndPagination = await srcApiGetFromUrlAwait(paginationLinks[paginationLinks.length - 1]["uri"]);
-		allRuns.push(...runsAndPagination["data"]);
+        allRuns.push(...runsAndPagination["data"]);
         pagination = runsAndPagination["pagination"];
 
-		failsafeCount++;
+        failsafeCount++;
     }
 
-	console.log(allRuns);
+    console.log(allRuns);
 
-	let output = "";
+    let output = "";
 
-	for (run of allRuns) {
-		output += JSON.stringify(run) + "\n";
-	}
+    for (run of allRuns) {
+        output += JSON.stringify(run) + "\\n";
+    }
 
-	$("pre").text(output);
+    $("pre").text(output);
+}
+
+function createCategoryIdNameMapping()
+{
+    let idNameCategoryMapping = {};
+    for (category of categoryData["data"]) {
+        idNameCategoryMapping[category["id"]] = category["name"];
+    }
+
+    console.log(idNameCategoryMapping);
 }
 
 $(function() {
     $("pre").text("speedrun.com");
-    fetchVerificationQueue();
+    //fetchVerificationQueue();
+    createCategoryIdNameMapping();
 });
