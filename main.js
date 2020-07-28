@@ -2,7 +2,41 @@ console.log("Hello, World!");
 const GAME = "mcce";
 const API_URL = "https://www.speedrun.com/api/v1/";
 
-function srcApiGetFromUrlAsync(urlStr, callback)
+function srcApiGetFromUrlAwait(urlStr)
+{
+	let timeStart = Date.now();
+    return new Promise(function (resolve, reject) {
+        let xmlHttp = new XMLHttpRequest();
+        xmlHttp.open("GET", urlStr, true);
+        xmlHttp.onload = function () {
+            if (this.status >= 200 && this.status < 300) {
+				let data = JSON.parse(xmlHttp.response);
+				let timeEnd = Date.now();
+				console.log(`${urlStr}: ${(timeEnd - timeStart)/1000.0}`);
+                resolve(data);
+            } else {
+                reject({
+                    status: this.status,
+                    statusText: xmlHttp.statusText
+                });
+            }
+        };
+        xmlHttp.onerror = function () {
+            reject({
+                status: this.status,
+                statusText: xmlHttp.statusText
+            });
+        };
+        xmlHttp.send();
+    });
+}
+
+function srcApiGetAwait(endpoint)
+{
+	return srcApiGetFromUrlAwait(API_URL + endpoint);
+}
+
+function srcApiGetFromUrlCallback(urlStr, callback)
 {
     var xmlHttp = new XMLHttpRequest();
     xmlHttp.onreadystatechange = function() { 
@@ -15,62 +49,75 @@ function srcApiGetFromUrlAsync(urlStr, callback)
     xmlHttp.send(null);
 }
 
-function srcApiGetAsync(endpoint, callback)
+function srcApiGetCallback(endpoint, callback)
 {
-    srcApiGetFromUrlAsync(API_URL + endpoint, callback);
+    srcApiGetFromUrlCallback(API_URL + endpoint, callback);
 }
 
-function srcGetAllNewRuns_getInitialRuns(gameId)
-{
-    srcApiGetAsync(`runs?game=${gameId}&status=new&orderby=date&direction=asc&max=200`, srcGetAllRuns_checkPagination);
-}
+// category | placement | user | time | platform | date | video available
+// request categories https://www.speedrun.com/api/v1/games/nd2e9erd/categories
+// and variables https://www.speedrun.com/api/v1/games/nd2e9erd/variables
+// to be able to find the category name and variable names to print out the full category
+// maybe do individual requests for categories https://www.speedrun.com/api/v1/categories/vdom79v2
+// but don't request individual categories variables (too many duplicates)
+// probably better to just request all to save requests
 
-function srcGetAllRuns_checkPagination(runsAndPagination)
-{
-    let allRuns = [];
-    let failsafeCount = 0;
+// request leaderboard for placement
+// https://www.speedrun.com/api/v1/leaderboards/nd2e9erd/category/vdom79v2
 
-    function srcGetAllRuns_getRestOfRuns(runsAndPagination) {
-        let curPagedRuns = runsAndPagination["data"];
-        let pagination = runsAndPagination["pagination"];
-        console.log(JSON.stringify(pagination));
-        allRuns.push(...curPagedRuns);
-        if (pagination["size"] != pagination["max"]) {
-            srcGetAllRuns_processRuns(allRuns);
-        } else {
-            let paginationLinks = pagination["links"];
-            failsafeCount++;
-            if (failsafeCount >= 5) {
-                console.log("Note: hit failsafe limit of 5!");
-                srcGetAllRuns_processRuns(allRuns);
-            }
-            srcApiGetFromUrlAsync(paginationLinks[paginationLinks.length - 1]["uri"], srcGetAllRuns_getRestOfRuns);
-        }
-    }
-
-    srcGetAllRuns_getRestOfRuns(runsAndPagination);
-}
-
+/*
 function srcGetAllRuns_processRuns(allRuns)
 {
-    let output = "";
+    let fragment = document.createDocumentFragment();
+
     for (run of allRuns) {
+        let row = document.createElement("tr");
+        
+        for 
+        let row = mcceQueue.insertRow();
+        
         output += JSON.stringify(run) + "\n";
     }
+
     $("pre").text(output);
-}
+}*/
 
-function fetchVerificationQueue_getGameId()
+async function fetchVerificationQueue()
 {
-    srcApiGetAsync(`games?abbreviation=${GAME}&max=1&_bulk=yes`, fetchVerificationQueue_getNewRuns);
-}
+	let gameData = await srcApiGetAwait(`games?abbreviation=${GAME}&max=1&_bulk=yes`);
+	let gameId = gameData["data"][0]["id"];
 
-function fetchVerificationQueue_getNewRuns(data)
-{
-    srcGetAllNewRuns_getInitialRuns(data["data"][0]["id"]);
+	let failsafeCount = 0;
+	
+	let runsAndPagination = await srcApiGetAwait(`runs?game=${gameId}&status=new&orderby=date&direction=asc&max=200`);
+    let allRuns = runsAndPagination["data"];
+    let pagination = runsAndPagination["pagination"];
+    while (pagination["size"] == pagination["max"]) {
+        if (failsafeCount >= 5) {
+            console.log("Note: hit failsafe limit of 5!");
+            break;
+        }
+
+        let paginationLinks = pagination["links"];
+        runsAndPagination = await srcApiGetFromUrlAwait(paginationLinks[paginationLinks.length - 1]["uri"]);
+		allRuns.push(...runsAndPagination["data"]);
+        pagination = runsAndPagination["pagination"];
+
+		failsafeCount++;
+    }
+
+	console.log(allRuns);
+
+	let output = "";
+
+	for (run of allRuns) {
+		output += JSON.stringify(run) + "\n";
+	}
+
+	$("pre").text(output);
 }
 
 $(function() {
     $("pre").text("speedrun.com");
-    fetchVerificationQueue_getGameId();
+    fetchVerificationQueue();
 });
