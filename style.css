@@ -1,6 +1,11 @@
-.colPadding td
+.col-padding td
 {
     padding: 0px 5px;
 	text-align: center; 
     vertical-align: middle;
+}
+
+.row-link:hover{
+    background-color: #cccccc;
+	cursor: pointer;
 }

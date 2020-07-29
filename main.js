@@ -85,22 +85,6 @@ function srcApiGetCallback(endpoint, callback)
 // request leaderboard for placement
 // https://www.speedrun.com/api/v1/leaderboards/nd2e9erd/category/vdom79v2
 
-/*
-function srcGetAllRuns_processRuns(allRuns)
-{
-    let fragment = document.createDocumentFragment();
-
-    for (run of allRuns) {
-        let row = document.createElement("tr");
-        
-        for 
-        let row = mcceQueue.insertRow();
-        
-        output += JSON.stringify(run) + "\\n";
-    }
-
-    $("pre").text(output);
-}*/
 
 async function fetchVerificationQueue()
 {
@@ -314,12 +298,17 @@ async function createLeaderboard()
         let runPlatform = await getRunPlatform(run);
         addCellToRow(row, runPlatform);
         addCellToRow(row, getDaysSinceRunDone(run));
+        row.setAttribute("data-href", run["weblink"]);
+        row.classList.add("row-link");
         fragment.appendChild(row);
     }
     let leaderboardTable = document.createElement("table");
-    leaderboardTable.classList.add("colPadding");
+    leaderboardTable.classList.add("col-padding");
     leaderboardTable.appendChild(fragment);
     $("#mcceQueue").append(leaderboardTable);
+    $("table .row-link").on("click", function() {
+        window.location = $(this).data("href");
+    });
 }
 
 $(function() {
