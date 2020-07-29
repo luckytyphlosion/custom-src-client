@@ -1,5 +1,5 @@
 console.log("Hello, World!");
-const GAME = "mcbe";
+const GAME = "mc";
 const API_URL = "https://www.speedrun.com/api/v1/";
 
 var gameId = "";
