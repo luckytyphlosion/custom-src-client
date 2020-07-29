@@ -1,11 +1,17 @@
 console.log("Hello, World!");
-const GAME = "mcce";
+const GAME = "mcbe";
 const API_URL = "https://www.speedrun.com/api/v1/";
 
+var gameId = "";
 var categoryNameMap = null;
 var subcategoryNameMap = null;
 var subcategoryPosMap = null;
 var savedPlatforms = new Map();
+
+var gameData = null;
+var runData = null;
+var categoryData = null;
+var variableData = null;
 
 // Taken and modified from https://stackoverflow.com/a/29153059
 var srcIso8601DurationRegex = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)(?:\.(\d+))?S)?/;
@@ -74,27 +80,18 @@ function srcApiGetCallback(endpoint, callback)
     srcApiGetFromUrlCallback(API_URL + endpoint, callback);
 }
 
-// category | placement | user | time | platform | date | video available
-// request categories https://www.speedrun.com/api/v1/games/nd2e9erd/categories
-// and variables https://www.speedrun.com/api/v1/games/nd2e9erd/variables
-// to be able to find the category name and variable names to print out the full category
-// maybe do individual requests for categories https://www.speedrun.com/api/v1/categories/vdom79v2
-// but don't request individual categories variables (too many duplicates)
-// probably better to just request all to save requests
-
-// request leaderboard for placement
-// https://www.speedrun.com/api/v1/leaderboards/nd2e9erd/category/vdom79v2
-
+async function getGameIdFromAbbreviation(game)
+{
+    gameData = await srcApiGetAwait(`games?abbreviation=${game}&max=1&_bulk=yes`);
+    gameId = gameData["data"][0]["id"];
+}
 
 async function fetchVerificationQueue()
 {
-    let gameData = await srcApiGetAwait(`games?abbreviation=${GAME}&max=1&_bulk=yes`);
-    let gameId = gameData["data"][0]["id"];
-
     let failsafeCount = 0;
-    
+
     let runsAndPagination = await srcApiGetAwait(`runs?game=${gameId}&status=new&orderby=date&direction=desc&embed=players&max=200`);
-    let allRuns = runsAndPagination["data"];
+    runData = runsAndPagination["data"];
     let pagination = runsAndPagination["pagination"];
     while (pagination["size"] == pagination["max"]) {
         if (failsafeCount >= 5) {
@@ -109,30 +106,20 @@ async function fetchVerificationQueue()
 
         failsafeCount++;
     }
-
-    console.log(allRuns);
-
-    let output = "";
-
-    for (run of allRuns) {
-        output += JSON.stringify(run) + "\\n";
-    }
-
-    $("pre").text(output);
 }
 
-function createCategoryNameMapping()
+async function createCategoryNameMapping()
 {
+    categoryData = await srcApiGetAwait(`games/${gameId}/categories`);
     categoryNameMap = new Map();
     for (category of categoryData["data"]) {
         categoryNameMap.set(category["id"], category["name"]);
     }
-
-    console.log(categoryNameMap);
 }
 
-function createSubcategoryNameMapping()
+async function createSubcategoryNameMapping()
 {
+    variableData = await srcApiGetAwait(`games/${gameId}/variables`);
     subcategoryNameMap = new Map();
     subcategoryPosMap = new Map();
 
@@ -151,9 +138,6 @@ function createSubcategoryNameMapping()
 
         subcategoryNameMap.set(subcategoryId, subcategoryValueIdToNameMap);
     }
-
-    console.log(subcategoryNameMap);
-    console.log(subcategoryPosMap);
 }
 
 function addCellToRow(row, cellText)
@@ -281,6 +265,16 @@ function getDaysSinceRunDone(run)
 }
 
 // category | placement | user | time | platform | date | video available
+// request categories https://www.speedrun.com/api/v1/games/nd2e9erd/categories
+// and variables https://www.speedrun.com/api/v1/games/nd2e9erd/variables
+// to be able to find the category name and variable names to print out the full category
+// maybe do individual requests for categories https://www.speedrun.com/api/v1/categories/vdom79v2
+// but don't request individual categories variables (too many duplicates)
+// probably better to just request all to save requests
+
+// request leaderboard for placement
+// https://www.speedrun.com/api/v1/leaderboards/nd2e9erd/category/vdom79v2
+
 async function createLeaderboard()
 {
     let output = "";
@@ -288,7 +282,7 @@ async function createLeaderboard()
 
     let fragment = document.createDocumentFragment();
 
-    for (run of runData["data"]) {
+    for (run of runData) {
         let row = document.createElement("tr");
 
         addCellToRow(row, createFullCategoryNameFromRun(run));
@@ -306,15 +300,24 @@ async function createLeaderboard()
     leaderboardTable.classList.add("col-padding");
     leaderboardTable.appendChild(fragment);
     $("#mcceQueue").append(leaderboardTable);
-    $("table .row-link").on("click", function() {
-        window.location = $(this).data("href");
+    $("table .row-link").on("click", function(e) {
+        e.preventDefault();
+        let runWeblink = $(this).data("href");
+        if (e.ctrlKey) {
+            window.open(runWeblink, "_blank");
+        } else {
+            window.location = runWeblink;
+        }
     });
 }
 
-$(function() {
-    $("pre").text("speedrun.com");
-    //fetchVerificationQueue();
-    createCategoryNameMapping();
-    createSubcategoryNameMapping();
+async function main()
+{
+    await getGameIdFromAbbreviation(GAME);
+    await Promise.allSettled([fetchVerificationQueue(), createCategoryNameMapping(), createSubcategoryNameMapping()]);
     createLeaderboard();
+}
+
+$(function() {
+    main();
 });
