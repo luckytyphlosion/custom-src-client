@@ -1,5 +1,5 @@
 # custom-src-client
-This is intended to be an enhanced version of the speedrun.com verification queue for verifiers and moderators.
+This is intended to be an enhanced (and unofficial) version of the speedrun.com verification queue for verifiers and moderators.
 It is currently in an alpha state with bare minimum functionality, but it'll support many QoL features (as well
 as meet the features of the speedrun.com in the eventual future).
 
@@ -7,6 +7,8 @@ The client can be run locally on your browser. No data is sent or received from 
 Content provided by the API is licensed under [CC-BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/).
 
 ## Notes for the current version
+To use the client, download the files (either through git or GitHub zip download) and open index.html in your preferred browser.
+
 Right now, there is no rate limiting built-in to the client to account for the API throttling.
 Users should be aware that the API accepts **100 requests per minute**.
 The client currently will perform a number of API calls equivalent to the following formula:
