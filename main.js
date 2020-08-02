@@ -140,14 +140,6 @@ async function createSubcategoryNameMapping()
     }
 }
 
-function addCellToRow(row, cellText)
-{
-    let cell = document.createElement("td");
-    let cellTextNode = document.createTextNode(cellText);
-    cell.appendChild(cellTextNode);
-    row.appendChild(cell);
-}
-
 function createFullCategoryNameFromRun(run)
 {
     let categoryName = categoryNameMap.get(run["category"]);
@@ -264,6 +256,11 @@ function getDaysSinceRunDone(run)
     }
 }
 
+function addCellToRow(row, cellText)
+{
+    row.append($("<td>").html(cellText));
+}
+
 // category | placement | user | time | platform | date | video available
 // request categories https://www.speedrun.com/api/v1/games/nd2e9erd/categories
 // and variables https://www.speedrun.com/api/v1/games/nd2e9erd/variables
@@ -277,13 +274,10 @@ function getDaysSinceRunDone(run)
 
 async function createLeaderboard()
 {
-    let output = "";
-    console.log(subcategoryNameMap);
-
     let fragment = document.createDocumentFragment();
 
     for (run of runData) {
-        let row = document.createElement("tr");
+        let row = $("<tr>");
 
         addCellToRow(row, createFullCategoryNameFromRun(run));
         addCellToRow(row, "??th");
@@ -292,14 +286,15 @@ async function createLeaderboard()
         let runPlatform = await getRunPlatform(run);
         addCellToRow(row, runPlatform);
         addCellToRow(row, getDaysSinceRunDone(run));
-        row.setAttribute("data-href", run["weblink"]);
-        row.classList.add("row-link");
-        fragment.appendChild(row);
+
+        row.attr("data-href", run["weblink"]).addClass("row-link");
+        fragment.appendChild(row[0]);
     }
-    let leaderboardTable = document.createElement("table");
-    leaderboardTable.classList.add("col-padding");
-    leaderboardTable.appendChild(fragment);
-    $("#mcceQueue").append(leaderboardTable);
+
+    $("<table>").addClass("col-padding")
+        .append(fragment)
+        .appendTo("#mcceQueue");
+
     $("table .row-link").on("click", function(e) {
         e.preventDefault();
         let runWeblink = $(this).data("href");
