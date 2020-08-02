@@ -13,6 +13,8 @@ var runData = null;
 var categoryData = null;
 var variableData = null;
 
+var apiCallSavedPromises = new Map();
+
 // Taken and modified from https://stackoverflow.com/a/29153059
 var srcIso8601DurationRegex = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)(?:\.(\d+))?S)?/;
 
@@ -30,8 +32,16 @@ function parseSrcISO8601Duration(srcIso8601Duration)
 
 function srcApiGetFromUrlAwait(urlStr)
 {
+    console.log(`Starting ${urlStr} at ${performance.now()}.`);
+
+    let savedPromise = apiCallSavedPromises.get(urlStr);
+    if (savedPromise !== undefined) {
+        console.log(`${urlStr}: using saved result`);
+        return savedPromise;
+    }
+
     let timeStart = performance.now();
-    return new Promise(function (resolve, reject) {
+    let promise = new Promise(function (resolve, reject) {
         let xmlHttp = new XMLHttpRequest();
         xmlHttp.open("GET", urlStr, true);
         xmlHttp.onload = function () {
@@ -55,6 +65,9 @@ function srcApiGetFromUrlAwait(urlStr)
         };
         xmlHttp.send();
     });
+
+    apiCallSavedPromises.set(urlStr, promise);
+    return promise;
 }
 
 function srcApiGetAwait(endpoint)
