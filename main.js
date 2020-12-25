@@ -114,7 +114,7 @@ async function fetchVerificationQueue()
 
         let paginationLinks = pagination["links"];
         runsAndPagination = await srcApiGetFromUrlAwait(paginationLinks[paginationLinks.length - 1]["uri"]);
-        allRuns.push(...runsAndPagination["data"]);
+        runData.push(...runsAndPagination["data"]);
         pagination = runsAndPagination["pagination"];
 
         failsafeCount++;
